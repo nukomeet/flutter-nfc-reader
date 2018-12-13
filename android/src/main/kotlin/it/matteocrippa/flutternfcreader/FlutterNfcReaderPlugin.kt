@@ -5,12 +5,14 @@ import android.nfc.NfcAdapter
 import android.nfc.NfcManager
 import android.nfc.tech.Ndef
 import android.os.Build
+import android.util.Log
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler
 import io.flutter.plugin.common.MethodChannel.Result
 import io.flutter.plugin.common.PluginRegistry.Registrar
 import java.nio.charset.Charset
+
 
 class FlutterNfcReaderPlugin(val registrar: Registrar) : MethodCallHandler {
     private var isReading = false
@@ -20,7 +22,7 @@ class FlutterNfcReaderPlugin(val registrar: Registrar) : MethodCallHandler {
 
     private var resulter: Result? = null
 
-    private var READER_FLAGS = NfcAdapter.FLAG_READER_NFC_A or NfcAdapter.FLAG_READER_SKIP_NDEF_CHECK
+    private var READER_FLAGS = NfcAdapter.FLAG_READER_NFC_A //or NfcAdapter.FLAG_READER_SKIP_NDEF_CHECK
 
     companion object {
         @JvmStatic
@@ -66,14 +68,19 @@ class FlutterNfcReaderPlugin(val registrar: Registrar) : MethodCallHandler {
 
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
                 nfcAdapter?.enableReaderMode(registrar.activity(), {
-                    // resulter?.success(bytesToHexString(it.id))
+                    var str = "(empty)"
                     
                     val ndef = Ndef.get(it)
-                    ndef.connect()
-                    val message = ndef.ndefMessage
-                    val data = message.toByteArray()
-                    val str = String(data, Charset.forName("UTF-8"))
-                    ndef.close()
+                    if (ndef != null) {
+                        ndef.connect()
+                        val message = ndef.getNdefMessage()
+                        val payload = message.getRecords()[0].getPayload()
+
+                        str = String(payload)
+
+                        ndef.close()
+                    }
+
                     resulter?.success(str)
                 },READER_FLAGS, null )
 
